@@ -76,7 +76,7 @@ input {
     margin-right: 10px;
 }
 
-.gallery__link {
+.gallery__item {
     margin-top: 20px;
     margin-left: 20px;
     min-width: 320px;
@@ -87,8 +87,8 @@ input {
     transition: all 0.3s;
 }
 
-.gallery__link:hover,
-.gallery__link:focus {
+.gallery__item:hover,
+.gallery__item:focus {
     box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.12),
         0px 4px 4px rgba(0, 0, 0, 0.06),
         1px 4px 6px rgba(0, 0, 0, 0.16);
@@ -121,3 +121,53 @@ input {
 .info-item:not(:first-child) {
     margin-left: 5px;
 }
+
+
+
+// .btn-load-more.is-hidden {
+//     display: none;
+// }
+
+// .btn-load-more {
+//     display: block;
+//     margin: 25px auto 0 auto;
+//     padding: 8px 20px;
+//     border: none;
+//     border-radius: 50px;
+//     background-color: #fbfbfb;
+//     box-shadow: 0 1px 2px 0 rgb(60 64 67 / 30%), 0 2px 6px 2px rgb(60 64 67 / 15%);
+//     font: inherit;
+//     color: rgb(0, 0, 0);
+//     cursor: pointer;
+// }
+
+// .btn-to-top {
+//     position: fixed;
+//     bottom: 3vh;
+//     right: 1vw;
+//     z-index: 1000;
+//     width: 50px;
+//     height: 50px;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     border-radius: 50%;
+//     background: #fdfdfd;
+//     box-shadow: 0 1px 2px 0 rgb(60 64 67 / 30%), 0 2px 6px 2px rgb(60 64 67 / 15%);
+//     color: rgb(0, 0, 0);
+//     cursor: pointer;
+//     opacity: 0;
+//     visibility: hidden;
+// }
+
+// .btn-to-top--visible {
+//     opacity: 1;
+//     visibility: visible;
+// }
+
+// .btn-load-more:hover,
+// .btn-to-top:hover {
+//     background-color: rgb(245, 228, 200);
+//     ;
+//     transition: all 0.6s;
+// }

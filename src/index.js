@@ -1,52 +1,93 @@
-// import './css/styles.css';
-import Notiflix from 'notiflix';
-import PictureApiService from "./components/pic-service";
-import SimpleLightbox from "simplelightbox";
+import './sass/index.scss';
 import "simplelightbox/dist/simple-lightbox.min.css";
+import SimpleLightbox from "simplelightbox";
+import { Notify } from "notiflix";
+import GalleryApi from './components/pic-service';
 
-window.addEventListener('scroll', infiniteScroll);
-document.querySelector('.search-form').addEventListener('submit', onSubmitClick);
-const galleryContainer = document.querySelector('.gallery');
-const apiService = new PictureApiService()
-let simpleLightBox = null;
-let isExecuted = false;
-let totalPics = 0;
 
-function onSubmitClick(event) {
-  event.preventDefault();
-  clearArticles();
-  apiService.query = event.currentTarget.elements.searchQuery.value;
-  apiService.resetPage();
-  
-  apiService.fetchArticles()
-    .then(articles => {
-      if (articles.hits.length === 0) {
-        return  Notiflix.Notify.failure('Sorry, there are no images matching your search query. Please try again.');
-      };
-      
-      Notiflix.Notify.success(`Hooray! We found ${articles.totalHits} images.`);
-      totalPics = articles.total;
-      articlesMarkup(articles)
-    })
-};
+// максимальное количество изображений, которые API может отдать
+const IMAGES_LIMIT = 500;
 
-function loadMore() {
-if (apiService.page > Math.ceil(totalPics / apiService.picsPerPage)) {
-  return;
-  }  
-  apiService.fetchArticles()
-    .then(articles => {
-      articlesMarkup(articles);
-      if (apiService.page > Math.ceil(totalPics / apiService.picsPerPage)) {
-        Notiflix.Notify.warning("We're sorry, but you've reached the end of search results.");
-      }
-    })
-};
+const refs = {
+  searchForm: document.querySelector('.search-form'),
+  galeryContainer: document.querySelector('.gallery'),
+  observe: document.querySelector('.for-observer')
+}
 
-// Сздание Шаблона разметки карточки одного изображения для галереи
-function articlesMarkup(articles) {
-  const markup = articles.hits.map(({largeImageURL, id, webformatURL, tags, likes, views, comments, downloads}) => {
-    return `<a class="gallery__link" href="${largeImageURL}">
+// Экземпляр класса GalleryApi
+const gallery = new GalleryApi();
+// Создает экземпляр IntersectionObserver
+const observer = new IntersectionObserver(updateImagesList, { root: null, rootMargin: "300px", treshold: 1 });
+
+let lightbox = null;
+// Событие при отправке формы поиска
+refs.searchForm.addEventListener('submit', onSearch);
+
+
+/** 
+ * Функция получает объект изображений и отображает их в DOM HTML
+ * работает только при первом новом запросе
+ */
+async function onSearch(e) {
+  e.preventDefault();
+
+  gallery.resetPage();
+  gallery.resetImagesOnPage();
+
+  // Отключаем наблюдатель перед очисткой галереи
+  observer.unobserve(refs.observe);
+  clearGalleryContainer();
+
+  // Получаем значение элемента ввода с атрибутом имени «searchQuery»
+  const queryString = e.target.elements.searchQuery.value;
+
+  try {
+    // Отправляем запрос для получения изображений
+    await gallery.getImagesByQuery(queryString)
+      .then(markupGalleryContainer)
+
+    // Экземпляр Lightbox
+    lightbox = new SimpleLightbox('.gallery__item', { showCounter: false });
+
+    // Включает наблюдателя
+    observer.observe(refs.observe);
+  } catch (e) {
+    Notify.failure(e.message)
+  }
+}
+
+/**
+ * Функция Пересматривает объекты до наблюдаемого тега
+ * и получает следующие объекты старого запроса
+ */
+async function updateImagesList(entries) {
+  if (entries[0].isIntersecting) {
+    // when images limit done show notification and stop observe
+    if (gallery.getImagesOnPage() >= IMAGES_LIMIT) {
+      Notify.failure("We're sorry, but you've reached the end of search results.");
+      observer.unobserve(refs.observe);
+      return;
+    }
+
+    // Новый запрос увеличит страницу и подсчитать изображения на странице
+    gallery.incrementPage();
+    gallery.incrementImagesOnPage();
+
+    try {
+      // Отправляет запрос, чтобы получить следующую часть объекта и разместить их ниже
+      await gallery.getImagesByQuery().then(markupGalleryContainer);
+    } catch (e) {
+      Notify.failure(e.message)
+    }
+
+    // Обновляет экземпляр лайтбокса для подключения новых изображений
+    lightbox.refresh();
+  }
+}
+// Создает разметку 
+function markupGalleryContainer(data) {
+  const markup = data.map(({ largeImageURL, id, webformatURL, tags, likes, views, comments, downloads }) => {
+    return `<a class="gallery__item" href="${largeImageURL}">
      <div class="photo-card" id='${id}'>
             <img class="photo-card__img" src="${webformatURL}" alt="${tags}" loading="lazy" />
       <div class="info">
@@ -66,25 +107,11 @@ function articlesMarkup(articles) {
     </div>
     </a>`
   }).join('');
-//   Добавление разметки в DOM
-  galleryContainer.insertAdjacentHTML('beforeend', markup);
-  simpleLightBox = new SimpleLightbox('.gallery a')
-};
-
-// Очищение разметки в DOM
-function clearArticles() {
-  galleryContainer.innerHTML = '';
-};
-
-// Бесконечный скролл
-function infiniteScroll() {
-    if (window.scrollY + window.innerHeight >=
-    document.documentElement.scrollHeight && !isExecuted) {
-    isExecuted = true;
-    setTimeout(() => {
-      isExecuted = false;
-    }, 3000);
-    loadMore();
-  }
-  simpleLightBox.refresh();
+  // Добавляет разметку в DOM
+  refs.galeryContainer.insertAdjacentHTML('beforeend', markup);
 }
+
+function clearGalleryContainer() {
+  refs.galeryContainer.innerHTML = "";
+}
+
